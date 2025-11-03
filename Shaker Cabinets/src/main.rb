@@ -1,7 +1,7 @@
 module ShakerCabinets
   def self.add_shaker_cabinet
     inputs = UI.inputbox(
-      ['Style', 'Carcass Width', 'Carcass Height', 'Carcass Depth', 'Face Border Width', 'Face Depth', 'Face Inset Depth', 'Handle Type', 'Handle Location'],
+      ['Style', 'Carcass Width', 'Carcass Height', 'Carcass Depth', 'Face Border Width', 'Face Depth', 'Face Inset Depth', 'Handle Type', 'Handle Position'],
       ['Shaker', 24.inch, 24.inch, 24.inch, 2.inch, 1.inch, (1.to_f / 2).inch, 'Pull', 'Center'],
       ['Shaker|Plain', '', '', '', '', '', '', 'None|Pull|Knob', 'Top Left|Top Center|Top Right|Left|Center|Right|Bottom Left|Bottom Center|Bottom Right']
     )
@@ -24,11 +24,11 @@ module ShakerCabinets
 
     handle_point, handle_orientation = case handle_location
     when 'Top Left'
-      [Geom::Point3d.new(face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical]
+      [Geom::Point3d.new(face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical_top]
     when 'Top Center'
       [Geom::Point3d.new(carcass_width / 2, -face_depth, carcass_height - face_border_width / 2), :horizontal]
     when 'Top Right'
-      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical]
+      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical_top]
     when 'Left'
       [Geom::Point3d.new(face_border_width / 2, -face_depth, carcass_height / 2), :vertical]
     when 'Center'
@@ -40,11 +40,11 @@ module ShakerCabinets
     when 'Right'
       [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, carcass_height / 2), :vertical]
     when 'Bottom Left'
-      [Geom::Point3d.new(face_border_width / 2, -face_depth, face_border_width), :vertical]
+      [Geom::Point3d.new(face_border_width / 2, -face_depth, face_border_width), :vertical_bottom]
     when 'Bottom Center'
       [Geom::Point3d.new(carcass_width / 2, -face_depth, face_border_width / 2), :horizontal]
     when 'Bottom Right'
-      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, face_border_width), :vertical]
+      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, face_border_width), :vertical_bottom]
     end
 
     case handle_type
@@ -112,7 +112,46 @@ module ShakerCabinets
   end
 
   def self.draw_pull(entities, point, orientation)
+    half_inch = (1.to_f / 2).inch # ruby makes this fucking annoying to retype
+    width = 4.inch
+    group = entities.add_group
 
+    x_offset = -(width + 1) / 2
+    z_offset = -half_inch / 2
+    face = group.entities.add_face [
+      [x_offset + 0,                 0,          z_offset],
+      [x_offset + half_inch,         0,          z_offset],
+      [x_offset + half_inch,         -half_inch, z_offset],
+      [x_offset + half_inch + width, -half_inch, z_offset],
+      [x_offset + half_inch + width, 0,          z_offset],
+      [x_offset + width + 1.inch,    0,          z_offset],
+      [x_offset + width + 1.inch,    -1.inch,    z_offset],
+      [x_offset + 0,                 -1.inch,    z_offset],
+    ]
+    face.reverse! unless face.normal.samedirection?(Z_AXIS)
+    face.pushpull half_inch
+
+    # use transform_entities instead of changing the group's transformation because the latter is
+    # confusing to reason about, and isn't entirely an accurate representation of the intent
+    faces = group.entities.grep(Sketchup::Face)
+
+    case orientation
+    when :horizontal
+      # nothing
+    when :vertical, :vertical_top, :vertical_bottom
+      group.entities.transform_entities Geom::Transformation.rotation(ORIGIN, Y_AXIS, 90.degrees), faces
+    end
+
+    case orientation
+    when :horizontal, :vertical
+      # nothing
+    when :vertical_top
+      group.entities.transform_entities Geom::Transformation.translation([0, 0, -(width + 1) / 2]), faces
+    when :vertical_bottom
+      group.entities.transform_entities Geom::Transformation.translation([0, 0, (width + 1) / 2]), faces
+    end
+
+    group.entities.transform_entities Geom::Transformation.translation(point), faces
   end
 end
 
