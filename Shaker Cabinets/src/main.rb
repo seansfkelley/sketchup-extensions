@@ -51,7 +51,7 @@ module ShakerCabinets
     when 'None'
       # nothing
     when 'Knob'
-      ShakerCabinets::draw_knob cabinet.entities, handle_point
+      ShakerCabinets::draw_knob cabinet.entities, handle_point, handle_orientation
     when 'Pull'
       ShakerCabinets::draw_pull cabinet.entities, handle_point, handle_orientation
     end
@@ -123,10 +123,20 @@ module ShakerCabinets
     face.pushpull face_depth
   end
 
-  def self.draw_knob(entities, point)
+  def self.draw_knob(entities, point, orientation)
     circle = entities.add_circle point, Y_AXIS.reverse, (1.to_f / 2).inch
     circle[0].find_faces # actually create the circle face
     face = circle[0].faces.first
+
+    case orientation
+    when :horizontal, :vertical
+      # nothing
+    when :vertical_top
+      entities.transform_entities Geom::Transformation.translation([0, 0, -(1.to_f / 2).inch]), face
+    when :vertical_bottom
+      entities.transform_entities Geom::Transformation.translation([0, 0, (1.to_f / 2).inch]), face
+    end
+
     face.pushpull 1.inch
   end
 
