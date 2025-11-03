@@ -1,47 +1,59 @@
 module ShakerCabinets
   def self.add_shaker_cabinet
     inputs = UI.inputbox(
-      ['Type', 'Carcass Width', 'Carcass Height', 'Carcass Depth', 'Face Border Width', 'Face Depth', 'Face Inset Depth', 'Pull Type'],
-      ['Cabinet (RH Pull)', 24.inch, 24.inch, 24.inch, 2.inch, 1.inch, (1.to_f / 2).inch, 'Knob'],
-      ['Cabinet (Center Pull)|Cabinet (LH Pull)|Cabinet (RH Pull)|Drawer|Drawer (No Inset)', '', '', '', '', '', '', 'Knob|Pull|None']
+      ['Style', 'Carcass Width', 'Carcass Height', 'Carcass Depth', 'Face Border Width', 'Face Depth', 'Face Inset Depth', 'Handle Type', 'Handle Location'],
+      ['Shaker', 24.inch, 24.inch, 24.inch, 2.inch, 1.inch, (1.to_f / 2).inch, 'Pull', 'Center'],
+      ['Shaker|Plain', '', '', '', '', '', '', 'None|Pull|Knob', 'Top Left|Top Center|Top Right|Left|Center|Right|Bottom Left|Bottom Center|Bottom Right']
     )
 
     return unless inputs
 
-    cabinet_type, carcass_width, carcass_height, carcass_depth, face_border_width, face_depth, face_inset_depth, pull_type = inputs
+    style, carcass_width, carcass_height, carcass_depth, face_border_width, face_depth, face_inset_depth, handle_type, handle_location = inputs
 
     model = Sketchup.active_model
-    model.start_operation("Draw Shaker #{cabinet_type}")
-    cabinet = model.definitions.add("Shaker #{cabinet_type}")
+    model.start_operation('Draw Shaker Cabinet')
+    cabinet = model.definitions.add('Shaker Cabinet')
 
     ShakerCabinets::draw_carcass cabinet.entities, carcass_width, carcass_height, carcass_depth
-    case cabinet_type
-    when 'Cabinet (Center Pull)', 'Cabinet (LH Pull)', 'Cabinet (RH Pull)', 'Drawer'
+    case style
+    when 'Shaker'
       ShakerCabinets::draw_shaker_face cabinet.entities, carcass_width, carcass_height, face_border_width, face_depth, face_inset_depth
-    when 'Drawer (No Inset)'
+    when 'Plain'
       ShakerCabinets::draw_simple_face cabinet.entities, carcass_width, carcass_height, face_depth
     end
 
-    pull_point, pull_orientation = case cabinet_type
-    when 'Cabinet (Center Pull)'
-      [Geom::Point3d.new(carcass_width / 2,                     -face_depth,                    carcass_height - face_border_width / 2), :horizontal]
-    when 'Cabinet (LH Pull)'
-      [Geom::Point3d.new(face_border_width / 2,                 -face_depth,                    carcass_height - face_border_width), :vertical]
-    when 'Cabinet (RH Pull)'
-      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth,                    carcass_height - face_border_width), :vertical]
-    when 'Drawer'
-      [Geom::Point3d.new(carcass_width / 2,                     -face_depth + face_inset_depth, carcass_height / 2), :horizontal]
-    when 'Drawer (No Inset)'
-      [Geom::Point3d.new(carcass_width / 2,                     -face_depth,                    carcass_height / 2), :horizontal]
+    handle_point, handle_orientation = case handle_location
+    when 'Top Left'
+      [Geom::Point3d.new(face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical]
+    when 'Top Center'
+      [Geom::Point3d.new(carcass_width / 2, -face_depth, carcass_height - face_border_width / 2), :horizontal]
+    when 'Top Right'
+      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, carcass_height - face_border_width), :vertical]
+    when 'Left'
+      [Geom::Point3d.new(face_border_width / 2, -face_depth, carcass_height / 2), :vertical]
+    when 'Center'
+      if style == 'Plain'
+        [Geom::Point3d.new(carcass_width / 2, -face_depth, carcass_height / 2), :horizontal]
+      else
+        [Geom::Point3d.new(carcass_width / 2, -face_depth + face_inset_depth, carcass_height / 2), :horizontal]
+      end
+    when 'Right'
+      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, carcass_height / 2), :vertical]
+    when 'Bottom Left'
+      [Geom::Point3d.new(face_border_width / 2, -face_depth, face_border_width), :vertical]
+    when 'Bottom Center'
+      [Geom::Point3d.new(carcass_width / 2, -face_depth, face_border_width / 2), :horizontal]
+    when 'Bottom Right'
+      [Geom::Point3d.new(carcass_width - face_border_width / 2, -face_depth, face_border_width), :vertical]
     end
 
-    case pull_type
+    case handle_type
     when 'None'
       # nothing
     when 'Knob'
-      ShakerCabinets::draw_knob cabinet.entities, pull_point
+      ShakerCabinets::draw_knob cabinet.entities, handle_point
     when 'Pull'
-      ShakerCabinets::draw_pull cabinet.entities, pull_point, pull_orientation
+      ShakerCabinets::draw_pull cabinet.entities, handle_point, handle_orientation
     end
 
     model.active_entities.add_instance cabinet, ORIGIN
