@@ -1,51 +1,36 @@
 module ShakerCabinets
+  PARAMETERS = {
+    'Style': ['Shaker', 'Shaker|Plain'],
+    'Carcass Width': [24.inch, ''],
+    'Carcass Height': [24.inch, ''],
+    'Carcass Depth': [24.inch, ''],
+    'Face Border Width': [2.inch, ''],
+    'Face Depth': [1.inch, ''],
+    'Face Inset Depth': [(1.to_f / 2).inch, ''],
+    'Handle Type': ['Pull', 'None|Pull|Knob'],
+    'Handle Position': ['Center', 'Top Left|Top Center|Top Right|Left|Center|Right|Bottom Left|Bottom Center|Bottom Right'],
+  }
+
   def self.add_shaker_cabinet
     model = Sketchup.active_model
+    defaults = Hash.new
 
-    parameter_names = [
-      'Style',
-      'Carcass Width',
-      'Carcass Height',
-      'Carcass Depth',
-      'Face Border Width',
-      'Face Depth',
-      'Face Inset Depth',
-      'Handle Type',
-      'Handle Position',
-    ]
-    hardcoded_parameter_defaults = [
-      'Shaker',
-      24.inch,
-      24.inch,
-      24.inch,
-      2.inch,
-      1.inch,
-      (1.to_f / 2).inch,
-      'Pull',
-      'Center',
-    ]
-    parameter_defaults = []
+    last_parameter_values = model.attribute_dictionary 'Shaker Cabinets last given parameters', true
 
-    attribute_storage = model.attribute_dictionary 'Shaker Cabinets configuration', true
-    parameter_names.each_index do |i|
-      value = attribute_storage[parameter_names[i]]
-      if value.nil?
-        parameter_defaults << hardcoded_parameter_defaults[i]
-      else
-        parameter_defaults << value
-      end
+    PARAMETERS.each do |name, spec|
+      defaults[name] = last_parameter_values[name] || spec[0]
     end
 
     inputs = UI.inputbox(
-      parameter_names,
-      parameter_defaults,
-      ['Shaker|Plain', '', '', '', '', '', '', 'None|Pull|Knob', 'Top Left|Top Center|Top Right|Left|Center|Right|Bottom Left|Bottom Center|Bottom Right']
+      PARAMETERS.keys,
+      defaults.values,
+      PARAMETERS.values.map { |default, options| options }
     )
 
     return unless inputs
 
-    parameter_names.each_index do |i|
-      attribute_storage[parameter_names[i]] = inputs[i]
+    PARAMETERS.keys.each_with_index do |name, i|
+      last_parameter_values[name] = inputs[i]
     end
 
     style, carcass_width, carcass_height, carcass_depth, face_border_width, face_depth, face_inset_depth, handle_type, handle_location = inputs
