@@ -1,16 +1,55 @@
 module ShakerCabinets
   def self.add_shaker_cabinet
+    model = Sketchup.active_model
+
+    parameter_names = [
+      'Style',
+      'Carcass Width',
+      'Carcass Height',
+      'Carcass Depth',
+      'Face Border Width',
+      'Face Depth',
+      'Face Inset Depth',
+      'Handle Type',
+      'Handle Position',
+    ]
+    hardcoded_parameter_defaults = [
+      'Shaker',
+      24.inch,
+      24.inch,
+      24.inch,
+      2.inch,
+      1.inch,
+      (1.to_f / 2).inch,
+      'Pull',
+      'Center',
+    ]
+    parameter_defaults = []
+
+    attribute_storage = model.attribute_dictionary 'Shaker Cabinets configuration', true
+    parameter_names.each_index do |i|
+      value = attribute_storage[parameter_names[i]]
+      if value.nil?
+        parameter_defaults << hardcoded_parameter_defaults[i]
+      else
+        parameter_defaults << value
+      end
+    end
+
     inputs = UI.inputbox(
-      ['Style', 'Carcass Width', 'Carcass Height', 'Carcass Depth', 'Face Border Width', 'Face Depth', 'Face Inset Depth', 'Handle Type', 'Handle Position'],
-      ['Shaker', 24.inch, 24.inch, 24.inch, 2.inch, 1.inch, (1.to_f / 2).inch, 'Pull', 'Center'],
+      parameter_names,
+      parameter_defaults,
       ['Shaker|Plain', '', '', '', '', '', '', 'None|Pull|Knob', 'Top Left|Top Center|Top Right|Left|Center|Right|Bottom Left|Bottom Center|Bottom Right']
     )
 
     return unless inputs
 
+    parameter_names.each_index do |i|
+      attribute_storage[parameter_names[i]] = inputs[i]
+    end
+
     style, carcass_width, carcass_height, carcass_depth, face_border_width, face_depth, face_inset_depth, handle_type, handle_location = inputs
 
-    model = Sketchup.active_model
     model.start_operation('Draw Shaker Cabinet')
     cabinet = model.definitions.add('Shaker Cabinet')
 
