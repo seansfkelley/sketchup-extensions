@@ -56,7 +56,26 @@ module ShakerCabinets
       ShakerCabinets::draw_pull cabinet.entities, handle_point, handle_orientation
     end
 
-    model.active_entities.add_instance cabinet, ORIGIN
+    camera = model.active_view.camera
+
+    if camera.direction.x.abs >= camera.direction.y.abs
+      if camera.direction.x > 0
+        rotation = Geom::Transformation.rotation ORIGIN, Z_AXIS, 270.degrees
+      else
+        rotation = Geom::Transformation.rotation ORIGIN, Z_AXIS, 90.degrees
+      end
+    else
+      if camera.direction.y > 0
+        rotation = IDENTITY
+      else
+        rotation = Geom::Transformation.rotation ORIGIN, Z_AXIS, 180.degrees
+      end
+    end
+
+    translation = Geom::Transformation.translation([-carcass_width / 2, -carcass_depth / 2, -carcass_height / 2]) *
+      Geom::Transformation.translation(camera.eye.offset(camera.direction, (10 * 12).inch))
+
+    model.active_entities.add_instance cabinet, translation * rotation
 
     model.commit_operation
   end
